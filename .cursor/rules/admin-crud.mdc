@@ -1,0 +1,374 @@
+---
+description: Créer un CRUD back-office complet (datatable + drawer) quand une nouvelle table/migration est ajoutée
+globs: database/migrations/*.php,app/Models/*.php
+alwaysApply: false
+---
+
+# CRUD Back-Office — Convention du projet
+
+Quand une nouvelle table est créée, générer systématiquement les **7 artefacts** suivants.
+
+## Architecture générale
+
+```
+Controller  →  UseCase  →  Repository (interface)  →  EloquentRepository
+```
+
+- **Controller** : valide la requête HTTP, délègue au Use Case, retourne la réponse.
+- **UseCase** (`app/UseCases/{Resource}/`) : logique métier, réutilisable partout dans le backend.
+- **Repository interface** (`app/Contracts/Repositories/`) : contrat d'accès aux données.
+- **Eloquent Repository** (`app/Repositories/`) : implémentation concrète via Eloquent.
+- Le binding interface → implémentation se fait dans `AppServiceProvider::register()`.
+
+---
+
+## 1. Routes (`routes/web.php`)
+
+Ajouter un groupe dans le bloc admin existant :
+
+```php
+Route::middleware('right:admin.{resources}')->group(function () {
+    Route::get('/{resources}', [{Resource}ManagementController::class, 'index'])->name('{resources}.index');
+    Route::post('/{resources}', [{Resource}ManagementController::class, 'store'])->name('{resources}.store');
+    Route::put('/{resources}/{{resource}}', [{Resource}ManagementController::class, 'update'])->name('{resources}.update');
+    Route::delete('/{resources}/{{resource}}', [{Resource}ManagementController::class, 'destroy'])->name('{resources}.destroy');
+});
+```
+
+---
+
+## 2. Repository interface (`app/Contracts/Repositories/{Resource}RepositoryInterface.php`)
+
+```php
+namespace App\Contracts\Repositories;
+
+use App\Models\{Resource};
+use Illuminate\Database\Eloquent\Collection;
+
+interface {Resource}RepositoryInterface
+{
+    public function findById(string $id): ?{Resource};
+    /** @return Collection<int, {Resource}> */
+    public function all(): Collection;
+    /** @param array<string, mixed> $data */
+    public function create(array $data): {Resource};
+    /** @param array<string, mixed> $data */
+    public function update({Resource} ${resource}, array $data): {Resource};
+    public function delete({Resource} ${resource}): bool;
+}
+```
+
+---
+
+## 3. Eloquent Repository (`app/Repositories/Eloquent{Resource}Repository.php`)
+
+```php
+namespace App\Repositories;
+
+use App\Contracts\Repositories\{Resource}RepositoryInterface;
+use App\Models\{Resource};
+use Illuminate\Database\Eloquent\Collection;
+
+class Eloquent{Resource}Repository implements {Resource}RepositoryInterface
+{
+    public function findById(string $id): ?{Resource} { return {Resource}::find($id); }
+
+    public function all(): Collection
+    {
+        return {Resource}::query()->orderBy('name')->get();
+    }
+
+    public function create(array $data): {Resource} { return {Resource}::create($data); }
+
+    public function update({Resource} ${resource}, array $data): {Resource}
+    {
+        ${resource}->update($data);
+        return ${resource}->fresh() ?? ${resource};
+    }
+
+    public function delete({Resource} ${resource}): bool { return (bool) ${resource}->delete(); }
+}
+```
+
+Puis ajouter dans `AppServiceProvider::register()` :
+
+```php
+$this->app->bind({Resource}RepositoryInterface::class, Eloquent{Resource}Repository::class);
+```
+
+---
+
+## 4. Use Cases (`app/UseCases/{Resource}/`)
+
+Créer un fichier par action. Exemple complet pour `Create` :
+
+```php
+namespace App\UseCases\{Resource};
+
+use App\Contracts\Repositories\{Resource}RepositoryInterface;
+use App\Models\{Resource};
+
+class Create{Resource}UseCase
+{
+    public function __construct(
+        private readonly {Resource}RepositoryInterface ${resources},
+    ) {}
+
+    public function execute(string $name /* … autres paramètres … */): {Resource}
+    {
+        return $this->{resources}->create(['name' => $name]);
+    }
+}
+```
+
+Fichiers à créer : `Create{Resource}UseCase`, `Update{Resource}UseCase`, `Delete{Resource}UseCase`, `List{Resource}sUseCase`.
+
+Règles :
+- Les exceptions métier lèvent `RuntimeException` avec un message traduit.
+- Le Use Case ne connaît pas la requête HTTP — il reçoit des scalaires ou des modèles.
+
+---
+
+## 5. Contrôleur (`app/Http/Controllers/Admin/{Resource}ManagementController.php`)
+
+Structure obligatoire — **mince**, délègue tout aux Use Cases :
+
+```php
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\UseCases\{Resource}\Create{Resource}UseCase;
+use App\UseCases\{Resource}\Delete{Resource}UseCase;
+use App\UseCases\{Resource}\List{Resource}sUseCase;
+use App\UseCases\{Resource}\Update{Resource}UseCase;
+use App\Models\{Resource};
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use RuntimeException;
+
+class {Resource}ManagementController extends Controller
+{
+    public function __construct(
+        private readonly List{Resource}sUseCase $list,
+        private readonly Create{Resource}UseCase $create,
+        private readonly Update{Resource}UseCase $update,
+        private readonly Delete{Resource}UseCase $delete,
+    ) {}
+
+    public function index(): Response
+    {
+        return Inertia::render('Admin/{Resources}/Index', [
+            'items' => $this->list->execute(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([/* règles */]);
+        $this->create->execute(...$validated);
+        return redirect()->route('admin.{resources}.index')->with('success', __('{Resource} créé.'));
+    }
+
+    public function update(Request $request, {Resource} ${resource}): RedirectResponse
+    {
+        $validated = $request->validate([/* règles */]);
+        try {
+            $this->update->execute(${resource}, $validated);
+        } catch (RuntimeException $e) {
+            return redirect()->route('admin.{resources}.index')->with('error', $e->getMessage());
+        }
+        return redirect()->route('admin.{resources}.index')->with('success', __('{Resource} mis à jour.'));
+    }
+
+    public function destroy({Resource} ${resource}): RedirectResponse
+    {
+        try {
+            $this->delete->execute(${resource});
+        } catch (RuntimeException $e) {
+            return redirect()->route('admin.{resources}.index')->with('error', $e->getMessage());
+        }
+        return redirect()->route('admin.{resources}.index')->with('success', __('{Resource} supprimé.'));
+    }
+}
+```
+
+Règles :
+- Redirections toujours vers `admin.{resources}.index` avec `->with('success'|'error', ...)`.
+- Validation inline dans le contrôleur.
+- Les RuntimeException du Use Case sont capturées et transformées en flash error.
+
+---
+
+## 6. Page Vue (`resources/js/Pages/Admin/{Resources}/Index.vue`)
+
+Utiliser les composants réutilisables du projet :
+
+```vue
+<script setup lang="ts">
+import AdminSubnav from '@/Components/AdminSubnav.vue';
+import ConfirmActionDialog from '@/Components/ConfirmActionDialog.vue';
+import Drawer from '@/Components/Drawer.vue';
+import FlashMessages from '@/Components/FlashMessages.vue';
+import FormField from '@/Components/FormField.vue';
+import LoadingButton from '@/Components/LoadingButton.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import { useInertiaForm } from '@/composables/useInertiaForm';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, router } from '@inertiajs/vue3';
+
+const props = defineProps<{ items: Array<{ id: number; name: string }> }>();
+
+const { form, drawerOpen, editingId, openCreate, openEdit, submit } = useInertiaForm({ name: '' });
+
+function submitCreate() {
+    submit(route('admin.{resources}.store'), 'post');
+}
+
+function submitEdit() {
+    if (!editingId.value) return;
+    submit(route('admin.{resources}.update', editingId.value), 'put');
+}
+
+function destroyItem(item: { id: number }) {
+    router.delete(route('admin.{resources}.destroy', item.id), { preserveScroll: true });
+}
+</script>
+
+<template>
+    <Head title="Administration — {Resources}" />
+    <AuthenticatedLayout>
+        <template #header>
+            <AdminSubnav />
+        </template>
+
+        <div class="space-y-6 p-6">
+            <FlashMessages />
+
+            <PageHeader title="{Label}" description="Gérez les {resources} du système.">
+                <template #actions>
+                    <Button @click="openCreate">Nouveau {resource}</Button>
+                </template>
+            </PageHeader>
+
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead class="w-24">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow v-for="item in items" :key="item.id">
+                        <TableCell>{{ item.name }}</TableCell>
+                        <TableCell class="flex gap-2">
+                            <Button variant="outline" size="sm" @click="openEdit(item.id, item)">
+                                Éditer
+                            </Button>
+                            <ConfirmActionDialog
+                                :title="`Supprimer ${item.name} ?`"
+                                description="Cette action est irréversible."
+                                @confirm="destroyItem(item)"
+                            />
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </div>
+
+        <Drawer v-model:open="drawerOpen" :title="editingId ? 'Modifier' : 'Créer'">
+            <form class="space-y-4" @submit.prevent="editingId ? submitEdit() : submitCreate()">
+                <FormField label="Nom" :error="form.errors.name" required>
+                    <Input v-model="form.name" />
+                </FormField>
+                <LoadingButton type="submit" :loading="form.processing" class="w-full">
+                    {{ editingId ? 'Enregistrer' : 'Créer' }}
+                </LoadingButton>
+            </form>
+        </Drawer>
+    </AuthenticatedLayout>
+</template>
+```
+
+---
+
+## 7. `AdminSubnav.vue` + Migration du droit
+
+```vue
+// Dans computed show :
+has('admin.{resources}') ||
+
+// Dans le template :
+<NavLink
+    v-if="has('admin.{resources}')"
+    :href="route('admin.{resources}.index')"
+    :active="route().current('admin.{resources}.*')"
+>
+    {Label français}
+</NavLink>
+```
+
+Migration du droit :
+
+```php
+public function up(): void
+{
+    \App\Models\Right::create([
+        'name'        => 'Gérer {resources}',
+        'slug'        => 'admin.{resources}',
+        'description' => 'Accès à la gestion des {resources} dans le back-office.',
+    ]);
+    // Le hook created() du modèle Right attache automatiquement au rôle admin
+}
+
+public function down(): void
+{
+    \App\Models\Right::where('slug', 'admin.{resources}')->delete();
+}
+```
+
+---
+
+## Composants réutilisables disponibles
+
+| Composant | Emplacement | Usage |
+|-----------|-------------|-------|
+| `FormField` | `@/Components/FormField.vue` | Wrapper label + input + erreur |
+| `PageHeader` | `@/Components/PageHeader.vue` | En-tête de section avec slot `#actions` |
+| `StatCard` | `@/Components/StatCard.vue` | Carte dashboard avec icône et tendance |
+| `EmptyState` | `@/Components/EmptyState.vue` | État vide avec icône et CTA |
+| `SearchInput` | `@/Components/SearchInput.vue` | Input recherche debounced |
+| `Badge` | `@/Components/Badge.vue` | Badge coloré (success, warning, destructive…) |
+| `Alert` | `@/Components/Alert.vue` | Alerte inline dismissible |
+| `LoadingButton` | `@/Components/LoadingButton.vue` | Bouton avec spinner |
+| `FlashMessages` | `@/Components/FlashMessages.vue` | Affiche les flash success/error Inertia |
+| `Pagination` | `@/Components/Pagination.vue` | Contrôles de pagination avec sélecteur de taille |
+
+## Composables disponibles
+
+| Composable | Emplacement | Usage |
+|-----------|-------------|-------|
+| `useTableFilters` | `@/composables/useTableFilters.ts` | Filtres/tri/pagination URL-driven |
+| `useConfirm` | `@/composables/useConfirm.ts` | Dialog de confirmation programmatique |
+| `useInertiaForm` | `@/composables/useInertiaForm.ts` | Wrapper useForm pour pattern create/edit drawer |
+| `useRights` | `@/composables/useRights.ts` | Vérifier les droits de l'utilisateur courant |
+| `useFlashToast` | `@/composables/useFlashToast.ts` | Flash messages via sonner toast |
+| `useTheme` | `@/composables/useTheme.js` | Gestion du thème clair/sombre |
+
+---
+
+## Checklist
+
+- [ ] Routes ajoutées dans le bon groupe `admin` de `routes/web.php`
+- [ ] Interface repository créée dans `app/Contracts/Repositories/`
+- [ ] Eloquent repository créé dans `app/Repositories/`
+- [ ] Binding ajouté dans `AppServiceProvider::register()`
+- [ ] Use Cases créés dans `app/UseCases/{Resource}/`
+- [ ] Contrôleur **mince** dans `app/Http/Controllers/Admin/`
+- [ ] Page Vue dans `resources/js/Pages/Admin/{Resources}/Index.vue`
+- [ ] `AdminSubnav.vue` mis à jour (computed `show` + `NavLink`)
+- [ ] Migration du droit `admin.{resources}` créée
