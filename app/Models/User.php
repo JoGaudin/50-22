@@ -42,6 +42,14 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class);
     }
 
+    /**
+     * @return BelongsToMany<Team, $this>
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class)->withPivot('description');
+    }
+
     public function hasRight(string $slug): bool
     {
         return Right::query()

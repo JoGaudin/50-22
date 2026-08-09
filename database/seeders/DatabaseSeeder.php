@@ -43,16 +43,7 @@ class DatabaseSeeder extends Seeder
             $user->roles()->syncWithoutDetaching([$adminRole->id]);
         }
 
-        $seedCount = max(0, (int) env('USERS_SEED_COUNT', 120));
-        $existingNonAdminUsers = User::query()
-            ->where('id', '!=', $user->id)
-            ->count();
-        $missingUsers = max(0, $seedCount - $existingNonAdminUsers);
-
-        if ($missingUsers > 0) {
-            User::factory()
-                ->count($missingUsers)
-                ->create();
-        }
+        $this->call(ParamDescriptionSeeder::class);
+        $this->call(RugbyNationaleSeeder::class);
     }
 }

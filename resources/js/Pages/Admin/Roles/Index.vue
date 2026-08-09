@@ -1,7 +1,8 @@
 <script setup>
 import AdminSubnav from '@/Components/AdminSubnav.vue';
 import ConfirmActionDialog from '@/Components/ConfirmActionDialog.vue';
-import Drawer from '@/Components/Drawer.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import RoleFormDrawer from '@/Components/RoleFormDrawer.vue';
 import { Button } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
@@ -59,19 +60,6 @@ watch(editingId, (id) => {
     editForm.clearErrors();
 });
 
-function toggleCreateRight(rightId, checked) {
-    const ids = createForm.right_ids;
-    if (checked && !ids.includes(rightId)) {
-        ids.push(rightId);
-    }
-    if (!checked) {
-        const i = ids.indexOf(rightId);
-        if (i >= 0) {
-            ids.splice(i, 1);
-        }
-    }
-}
-
 function toggleEditRight(rightId, checked) {
     const ids = editForm.right_ids;
     if (checked && !ids.includes(rightId)) {
@@ -126,11 +114,7 @@ function isAdminSlug(slug) {
         <template #header>
             <div class="space-y-4">
                 <AdminSubnav />
-                <h2
-                    class="text-xl font-semibold leading-tight text-foreground"
-                >
-                    Rôles et droits
-                </h2>
+                <PageHeader title="Rôles et droits" :separator="false" />
             </div>
         </template>
 
@@ -149,103 +133,12 @@ function isAdminSlug(slug) {
                     {{ flashError }}
                 </div>
 
-                <Drawer
+                <RoleFormDrawer
                     v-model:open="createDrawerOpen"
-                    title="Nouveau rôle"
-                >
-                    <form
-                        id="create-role-form"
-                        class="space-y-4"
-                        @submit.prevent="submitCreate"
-                    >
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label
-                                    class="mb-1 block text-sm font-medium text-foreground"
-                                    for="create-name"
-                                >Nom</label>
-                                <Input
-                                    id="create-name"
-                                    v-model="createForm.name"
-                                    type="text"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="mb-1 block text-sm font-medium text-foreground"
-                                    for="create-slug"
-                                >Identifiant (slug)</label>
-                                <Input
-                                    id="create-slug"
-                                    v-model="createForm.slug"
-                                    type="text"
-                                    required
-                                    class="font-mono text-sm"
-                                    placeholder="ex. moderator"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label
-                                class="mb-1 block text-sm font-medium text-foreground"
-                                for="create-desc"
-                            >Description</label>
-                            <Textarea
-                                id="create-desc"
-                                v-model="createForm.description"
-                                rows="2"
-                                class="min-h-[4rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                            />
-                        </div>
-                        <fieldset class="space-y-2">
-                            <legend class="text-sm font-medium text-foreground">
-                                Droits
-                            </legend>
-                            <div
-                                class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
-                            >
-                                <label
-                                    v-for="r in rights"
-                                    :key="r.id"
-                                    class="flex cursor-pointer items-center gap-2 text-sm"
-                                >
-                                    <Checkbox
-                                        :checked="
-                                            createForm.right_ids.includes(r.id)
-                                        "
-                                        @update:checked="
-                                            (v) =>
-                                                toggleCreateRight(r.id, !!v)
-                                        "
-                                    />
-                                    <span>{{ r.name }}</span>
-                                    <span
-                                        class="font-mono text-xs text-muted-foreground"
-                                    >({{ r.slug }})</span>
-                                </label>
-                            </div>
-                        </fieldset>
-                    </form>
-                    <template #actions>
-                        <div class="flex w-full items-center justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                @click="createDrawerOpen = false"
-                            >
-                                Annuler
-                            </Button>
-                            <Button
-                                type="submit"
-                                form="create-role-form"
-                                :disabled="createForm.processing"
-                            >
-                                Créer le rôle
-                            </Button>
-                        </div>
-                    </template>
-                </Drawer>
+                    :form="createForm"
+                    :rights="rights"
+                    @submit="submitCreate"
+                />
 
                 <section
                     class="overflow-hidden border border-border bg-card shadow-sm sm:rounded-lg"

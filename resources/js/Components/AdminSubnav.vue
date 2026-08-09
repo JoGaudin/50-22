@@ -16,7 +16,14 @@ const show = computed(
         has('admin.users') ||
         has('admin.roles') ||
         has('admin.rights') ||
-        has('admin.settings'),
+        has('admin.settings') ||
+        has('admin.leagues') ||
+        has('admin.seasons') ||
+        has('admin.teams') ||
+        has('admin.journees') ||
+        has('admin.matches') ||
+        has('admin.param-descriptions') ||
+        has('admin.fiches'),
 );
 </script>
 
@@ -53,6 +60,55 @@ const show = computed(
             :active="route().current('admin.settings.*')"
         >
             Paramètres
+        </NavLink>
+        <NavLink
+            v-if="has('admin.leagues')"
+            :href="route('admin.leagues.index')"
+            :active="route().current('admin.leagues.*')"
+        >
+            Ligues
+        </NavLink>
+        <NavLink
+            v-if="has('admin.seasons')"
+            :href="route('admin.seasons.index')"
+            :active="route().current('admin.seasons.*')"
+        >
+            Saisons
+        </NavLink>
+        <NavLink
+            v-if="has('admin.teams')"
+            :href="route('admin.teams.index')"
+            :active="route().current('admin.teams.*')"
+        >
+            Équipes
+        </NavLink>
+        <NavLink
+            v-if="has('admin.journees')"
+            :href="route('admin.journees.index')"
+            :active="route().current('admin.journees.*')"
+        >
+            Journées
+        </NavLink>
+        <NavLink
+            v-if="has('admin.matches')"
+            :href="route('admin.matches.index')"
+            :active="route().current('admin.matches.*')"
+        >
+            Matchs
+        </NavLink>
+        <NavLink
+            v-if="has('admin.param-descriptions')"
+            :href="route('admin.param-descriptions.index')"
+            :active="route().current('admin.param-descriptions.*')"
+        >
+            Paramètres de fiche
+        </NavLink>
+        <NavLink
+            v-if="has('admin.fiches')"
+            :href="route('admin.fiches.index')"
+            :active="route().current('admin.fiches.*')"
+        >
+            Fiches
         </NavLink>
     </nav>
 </template>

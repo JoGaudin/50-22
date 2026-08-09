@@ -78,6 +78,18 @@ function adminNavActive() {
                                     Dashboard
                                 </NavLink>
                                 <NavLink
+                                    :href="route('referee.leagues.index')"
+                                    :active="route().current('referee.*') && !route().current('referee.matches.*')"
+                                >
+                                    Arbitrage
+                                </NavLink>
+                                <NavLink
+                                    :href="route('referee.matches.index')"
+                                    :active="route().current('referee.matches.*')"
+                                >
+                                    Match
+                                </NavLink>
+                                <NavLink
                                     v-if="canSeeAdminNav"
                                     :href="firstAdminRoute()"
                                     :active="adminNavActive()"
@@ -194,6 +206,18 @@ function adminNavActive() {
                             :active="route().current('dashboard')"
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('referee.leagues.index')"
+                            :active="route().current('referee.*') && !route().current('referee.matches.*')"
+                        >
+                            Arbitrage
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('referee.matches.index')"
+                            :active="route().current('referee.matches.*')"
+                        >
+                            Match
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="canSeeAdminNav"

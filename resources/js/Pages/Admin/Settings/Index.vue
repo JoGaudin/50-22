@@ -1,5 +1,6 @@
 <script setup>
 import AdminSubnav from '@/Components/AdminSubnav.vue';
+import PageHeader from '@/Components/PageHeader.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
@@ -45,9 +46,7 @@ const modes = [
         <template #header>
             <div class="space-y-4">
                 <AdminSubnav />
-                <h2 class="text-xl font-semibold leading-tight text-foreground">
-                    Paramètres
-                </h2>
+                <PageHeader title="Paramètres" :separator="false" />
             </div>
         </template>
 

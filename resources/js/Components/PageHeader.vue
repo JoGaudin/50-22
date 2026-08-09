@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { Separator } from '@/Components/ui/separator';
-
 withDefaults(
     defineProps<{
         title: string;
         description?: string;
+        eyebrow?: string;
         separator?: boolean;
     }>(),
-    { description: undefined, separator: true },
+    { description: undefined, eyebrow: undefined, separator: true },
 );
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
-        <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col gap-4" :class="separator ? 'border-y border-secondary/40 py-3' : ''">
+        <div class="flex items-baseline justify-between gap-4">
             <div class="min-w-0 flex-1">
-                <h2 class="truncate text-xl font-semibold tracking-tight">{{ title }}</h2>
-                <p v-if="description" class="mt-0.5 text-sm text-muted-foreground">
+                <p v-if="eyebrow" class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{{ eyebrow }}</p>
+                <h2 class="mt-1 truncate font-display text-3xl font-bold uppercase tracking-tight first:mt-0">{{ title }}</h2>
+                <p v-if="description" class="mt-1 text-sm text-muted-foreground">
                     {{ description }}
                 </p>
             </div>
@@ -25,7 +25,5 @@ withDefaults(
                 <slot name="actions" />
             </div>
         </div>
-
-        <Separator v-if="separator" />
     </div>
 </template>

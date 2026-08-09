@@ -1,4 +1,4 @@
-.PHONY: up down import-db bbash
+.PHONY: up down import-db bbash migrate seed
 
 up:
 	docker compose up -d
@@ -15,3 +15,6 @@ bbash:
 
 migrate:
 	docker compose exec php php artisan migrate
+
+seed:
+	docker compose exec php php artisan db:seed

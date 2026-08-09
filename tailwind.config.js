@@ -16,6 +16,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ["Figtree", ...defaultTheme.fontFamily.sans],
+                display: ["Barlow Condensed", ...defaultTheme.fontFamily.sans],
             },
             borderRadius: {
                 lg: "var(--radius)",

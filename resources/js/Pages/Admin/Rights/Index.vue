@@ -1,7 +1,8 @@
 <script setup>
 import AdminSubnav from '@/Components/AdminSubnav.vue';
 import ConfirmActionDialog from '@/Components/ConfirmActionDialog.vue';
-import Drawer from '@/Components/Drawer.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import RightFormDrawer from '@/Components/RightFormDrawer.vue';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import {
@@ -90,11 +91,7 @@ function destroyRight(right) {
         <template #header>
             <div class="space-y-4">
                 <AdminSubnav />
-                <h2
-                    class="text-xl font-semibold leading-tight text-foreground"
-                >
-                    Droits
-                </h2>
+                <PageHeader title="Droits" :separator="false" />
             </div>
         </template>
 
@@ -113,76 +110,11 @@ function destroyRight(right) {
                     {{ flashError }}
                 </div>
 
-                <Drawer
+                <RightFormDrawer
                     v-model:open="createDrawerOpen"
-                    title="Nouveau droit"
-                    description="Les nouveaux droits sont automatiquement associés au rôle administrateur."
-                >
-                    <form
-                        id="create-right-form"
-                        class="space-y-4"
-                        @submit.prevent="submitCreate"
-                    >
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label
-                                    class="mb-1 block text-sm font-medium text-foreground"
-                                    for="cr-name"
-                                >Nom</label>
-                                <Input
-                                    id="cr-name"
-                                    v-model="createForm.name"
-                                    type="text"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="mb-1 block text-sm font-medium text-foreground"
-                                    for="cr-slug"
-                                >Identifiant (slug)</label>
-                                <Input
-                                    id="cr-slug"
-                                    v-model="createForm.slug"
-                                    type="text"
-                                    required
-                                    class="font-mono text-sm"
-                                    placeholder="ex. reports.view"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label
-                                class="mb-1 block text-sm font-medium text-foreground"
-                                for="cr-desc"
-                            >Description</label>
-                            <Textarea
-                                id="cr-desc"
-                                v-model="createForm.description"
-                                rows="2"
-                                class="min-h-[4rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                            />
-                        </div>
-                    </form>
-                    <template #actions>
-                        <div class="flex w-full items-center justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                @click="createDrawerOpen = false"
-                            >
-                                Annuler
-                            </Button>
-                            <Button
-                                type="submit"
-                                form="create-right-form"
-                                :disabled="createForm.processing"
-                            >
-                                Créer le droit
-                            </Button>
-                        </div>
-                    </template>
-                </Drawer>
+                    :form="createForm"
+                    @submit="submitCreate"
+                />
 
                 <section
                     class="overflow-hidden border border-border bg-card shadow-sm sm:rounded-lg"

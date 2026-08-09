@@ -4,6 +4,7 @@ import AddUserDrawer from '@/Components/AddUserDrawer.vue';
 import ConfirmActionDialog from '@/Components/ConfirmActionDialog.vue';
 import DataTable from '@/Components/DataTable.vue';
 import GlobalSearch from '@/Components/GlobalSearch.vue';
+import PageHeader from '@/Components/PageHeader.vue';
 import UserDataDrawer from '@/Components/UserDataDrawer.vue';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
@@ -367,11 +368,7 @@ function formatCreatedAt(value) {
         <template #header>
             <div class="space-y-4">
                 <AdminSubnav />
-                <h2
-                    class="text-xl font-semibold leading-tight text-foreground"
-                >
-                    Gestion des utilisateurs
-                </h2>
+                <PageHeader title="Gestion des utilisateurs" :separator="false" />
             </div>
         </template>
 
