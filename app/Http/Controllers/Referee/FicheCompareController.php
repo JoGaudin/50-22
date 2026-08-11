@@ -38,11 +38,7 @@ class FicheCompareController extends Controller
             if ($team !== null) {
                 $this->authorizeTeam($team);
 
-                $fiches = Fiche::query()
-                    ->where('team_id', $team->id)
-                    ->orderByDesc('created_at')
-                    ->with(['creator:id,name', 'paramDescriptions'])
-                    ->get();
+                $fiches = $this->fiches->versionsForTeam($team, $request->user());
             }
         }
 
@@ -54,11 +50,11 @@ class FicheCompareController extends Controller
         ]);
     }
 
-    public function answers(Team $team, ParamDescription $paramDescription): JsonResponse
+    public function answers(Request $request, Team $team, ParamDescription $paramDescription): JsonResponse
     {
         $this->authorizeTeam($team);
 
-        $fiches = $this->fiches->recentAnswers($team, $paramDescription);
+        $fiches = $this->fiches->recentAnswers($team, $paramDescription, $request->user());
 
         return response()->json($fiches->map(fn (Fiche $fiche) => [
             'fiche_name' => $fiche->name,

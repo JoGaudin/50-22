@@ -84,8 +84,8 @@ function toggleRight(rightId, checked) {
                 <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     <label v-for="r in rights" :key="r.id" class="flex cursor-pointer items-center gap-2 text-sm">
                         <Checkbox
-                            :checked="form.right_ids.includes(r.id)"
-                            @update:checked="(v) => toggleRight(r.id, !!v)"
+                            :model-value="form.right_ids.includes(r.id)"
+                            @update:model-value="(v) => toggleRight(r.id, !!v)"
                         />
                         <span>{{ r.name }}</span>
                         <span class="font-mono text-xs text-muted-foreground">({{ r.slug }})</span>

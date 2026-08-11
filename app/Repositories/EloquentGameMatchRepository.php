@@ -31,6 +31,15 @@ class EloquentGameMatchRepository implements GameMatchRepositoryInterface
             ->get();
     }
 
+    public function forLeaguesOfUser(User $user): Collection
+    {
+        return GameMatch::query()
+            ->whereHas('journee.season.league.referees', fn ($q) => $q->where('users.id', $user->id))
+            ->with(['journee:id,number', 'homeTeam:id,name', 'outsideTeam:id,name', 'referee:id,name', 'creator:id,name'])
+            ->orderByDesc('date')
+            ->get();
+    }
+
     public function create(array $data): GameMatch
     {
         return GameMatch::create($data);

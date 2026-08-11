@@ -42,7 +42,7 @@ class TeamManagementController extends Controller
         ]);
 
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('team-logos', 'public');
+            $validated['logo'] = $request->file('logo')->store('team-logos', config()->string('filesystems.default'));
         } else {
             unset($validated['logo']);
         }
@@ -63,7 +63,7 @@ class TeamManagementController extends Controller
         ]);
 
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('team-logos', 'public');
+            $validated['logo'] = $request->file('logo')->store('team-logos', config()->string('filesystems.default'));
         } else {
             unset($validated['logo']);
         }

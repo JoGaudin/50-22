@@ -48,7 +48,7 @@ class MatchController extends Controller
         })->values();
 
         return Inertia::render('Referee/Matches/Index', [
-            'matches' => $this->matches->forReferee($request->user()),
+            'matches' => $this->matches->forLeaguesOfUser($request->user()),
             'leagues' => $leagues,
         ]);
     }
@@ -77,9 +77,11 @@ class MatchController extends Controller
         }
         unset($validated['as_referee']);
 
+        $validated['created_by'] = $request->user()->id;
+
         $this->create->execute($validated);
 
-        return redirect()->route('referee.leagues.show', $league)->with('success', __('Match créé.'));
+        return back()->with('success', __('Match créé.'));
     }
 
     public function show(GameMatch $match): Response

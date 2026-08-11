@@ -21,6 +21,11 @@ interface GameMatchRepositoryInterface
     public function forReferee(User $user): Collection;
 
     /**
+     * @return Collection<int, GameMatch>
+     */
+    public function forLeaguesOfUser(User $user): Collection;
+
+    /**
      * @param array<string, mixed> $data
      */
     public function create(array $data): GameMatch;

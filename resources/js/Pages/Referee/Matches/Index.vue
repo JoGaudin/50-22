@@ -21,6 +21,10 @@ interface MatchRow {
     journee: { id: string; number: number } | null;
     home_team: { id: string; name: string } | null;
     outside_team: { id: string; name: string } | null;
+    referee: { id: string; name: string } | null;
+    referee_name: string | null;
+    created_by: string | null;
+    creator: { id: string; name: string } | null;
 }
 
 interface LeagueOption {
@@ -34,6 +38,7 @@ const props = defineProps<{ matches: MatchRow[]; leagues: LeagueOption[] }>();
 
 const page = usePage();
 const currentUserName = () => (page.props.auth as { user: { name: string } }).user.name;
+const currentUserId = () => (page.props.auth as { user: { id: string } }).user.id;
 
 const statusLabels: Record<string, string> = {
     scheduled: 'À venir',
@@ -49,6 +54,61 @@ const statusVariants: Record<string, 'outline' | 'success' | 'destructive'> = {
 
 const selectedLeagueId = ref('');
 const selectedLeague = computed(() => props.leagues.find((league) => league.id === selectedLeagueId.value) ?? null);
+
+type SortColumn = 'date' | 'status' | 'journee';
+
+const sortBy = ref<SortColumn>('date');
+const sortDir = ref<'asc' | 'desc'>('desc');
+const statusFilter = ref('');
+const journeeFilter = ref('');
+const homeTeamFilter = ref('');
+const outsideTeamFilter = ref('');
+const createdByMeFilter = ref(false);
+const refereedByMeFilter = ref(false);
+
+function setSort(column: SortColumn) {
+    if (sortBy.value === column) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortBy.value = column;
+        sortDir.value = 'asc';
+    }
+}
+
+const filterTeams = computed(() => {
+    const seen = new Map<string, { id: string; name: string }>();
+    for (const match of props.matches) {
+        if (match.home_team) seen.set(match.home_team.id, match.home_team);
+        if (match.outside_team) seen.set(match.outside_team.id, match.outside_team);
+    }
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const filterJournees = computed(() => {
+    const seen = new Map<string, { id: string; number: number }>();
+    for (const match of props.matches) {
+        if (match.journee) seen.set(match.journee.id, match.journee);
+    }
+    return [...seen.values()].sort((a, b) => a.number - b.number);
+});
+
+const filteredSortedMatches = computed(() => {
+    const dir = sortDir.value === 'asc' ? 1 : -1;
+
+    return props.matches
+        .filter((m) => !statusFilter.value || m.status === statusFilter.value)
+        .filter((m) => !journeeFilter.value || m.journee?.id === journeeFilter.value)
+        .filter((m) => !homeTeamFilter.value || m.home_team?.id === homeTeamFilter.value)
+        .filter((m) => !outsideTeamFilter.value || m.outside_team?.id === outsideTeamFilter.value)
+        .filter((m) => !createdByMeFilter.value || m.created_by === currentUserId())
+        .filter((m) => !refereedByMeFilter.value || m.referee?.id === currentUserId())
+        .slice()
+        .sort((a, b) => {
+            if (sortBy.value === 'date') return a.date.localeCompare(b.date) * dir;
+            if (sortBy.value === 'status') return a.status.localeCompare(b.status) * dir;
+            return ((a.journee?.number ?? 0) - (b.journee?.number ?? 0)) * dir;
+        });
+});
 
 const { form, drawerOpen, openCreate, submit } = useInertiaForm({
     date: '',
@@ -66,6 +126,11 @@ watch(
     },
 );
 
+function openCreateMatch() {
+    selectedLeagueId.value = '';
+    openCreate();
+}
+
 function submitMatch() {
     if (!selectedLeagueId.value) return;
     submit(route('referee.leagues.matches.store', selectedLeagueId.value), 'post');
@@ -80,28 +145,67 @@ function submitMatch() {
         </template>
 
         <div class="space-y-6 p-6">
-            <div class="flex flex-wrap items-center justify-end gap-3">
-                <NativeSelect v-model="selectedLeagueId" class="w-56">
-                    <NativeSelectOption value="" disabled>Sélectionner un championnat…</NativeSelectOption>
-                    <NativeSelectOption v-for="league in leagues" :key="league.id" :value="league.id">{{ league.name }}</NativeSelectOption>
-                </NativeSelect>
-                <Button :disabled="!selectedLeagueId" @click="openCreate"><PlusIcon class="mr-2 size-4" />Nouveau match</Button>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div v-if="matches.length" class="flex flex-wrap gap-3">
+                    <NativeSelect v-model="statusFilter" class="w-40">
+                        <NativeSelectOption value="">Tous les statuts</NativeSelectOption>
+                        <NativeSelectOption v-for="(label, value) in statusLabels" :key="value" :value="value">
+                            {{ label }}
+                        </NativeSelectOption>
+                    </NativeSelect>
+                    <NativeSelect v-model="journeeFilter" class="w-40">
+                        <NativeSelectOption value="">Toutes les journées</NativeSelectOption>
+                        <NativeSelectOption v-for="j in filterJournees" :key="j.id" :value="j.id">J{{ j.number }}</NativeSelectOption>
+                    </NativeSelect>
+                    <NativeSelect v-model="homeTeamFilter" class="w-48">
+                        <NativeSelectOption value="">Toutes équipes domicile</NativeSelectOption>
+                        <NativeSelectOption v-for="t in filterTeams" :key="t.id" :value="t.id">{{ t.name }}</NativeSelectOption>
+                    </NativeSelect>
+                    <NativeSelect v-model="outsideTeamFilter" class="w-48">
+                        <NativeSelectOption value="">Toutes équipes extérieures</NativeSelectOption>
+                        <NativeSelectOption v-for="t in filterTeams" :key="t.id" :value="t.id">{{ t.name }}</NativeSelectOption>
+                    </NativeSelect>
+                    <Button
+                        size="sm"
+                        :variant="createdByMeFilter ? 'default' : 'outline'"
+                        @click="createdByMeFilter = !createdByMeFilter"
+                    >
+                        Créé par moi
+                    </Button>
+                    <Button
+                        size="sm"
+                        :variant="refereedByMeFilter ? 'default' : 'outline'"
+                        @click="refereedByMeFilter = !refereedByMeFilter"
+                    >
+                        Arbitré par moi
+                    </Button>
+                </div>
+                <div v-else></div>
+                <Button @click="openCreateMatch"><PlusIcon class="mr-2 size-4" />Nouveau match</Button>
             </div>
 
             <EmptyState v-if="matches.length === 0" title="Aucun match" :icon="CalendarIcon" />
             <Table v-else>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Journée</TableHead>
+                        <TableHead class="cursor-pointer select-none" @click="setSort('date')">
+                            Date {{ sortBy === 'date' ? (sortDir === 'asc' ? '▲' : '▼') : '' }}
+                        </TableHead>
+                        <TableHead class="cursor-pointer select-none" @click="setSort('journee')">
+                            Journée {{ sortBy === 'journee' ? (sortDir === 'asc' ? '▲' : '▼') : '' }}
+                        </TableHead>
                         <TableHead>Rencontre</TableHead>
                         <TableHead class="text-right">Score</TableHead>
-                        <TableHead>Statut</TableHead>
+                        <TableHead class="cursor-pointer select-none" @click="setSort('status')">
+                            Statut {{ sortBy === 'status' ? (sortDir === 'asc' ? '▲' : '▼') : '' }}
+                        </TableHead>
+                        <TableHead>Arbitre</TableHead>
+                        <TableHead>Créé par</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     <TableRow
-                        v-for="match in matches"
+                        v-for="match in filteredSortedMatches"
                         :key="match.id"
                         class="cursor-pointer"
                         @click="$inertia.visit(route('referee.matches.show', match.id))"
@@ -114,6 +218,8 @@ function submitMatch() {
                             <span v-else class="text-muted-foreground">—</span>
                         </TableCell>
                         <TableCell><Badge :variant="statusVariants[match.status] ?? 'outline'">{{ statusLabels[match.status] ?? match.status }}</Badge></TableCell>
+                        <TableCell>{{ match.referee?.name ?? match.referee_name ?? '—' }}</TableCell>
+                        <TableCell>{{ match.creator?.name ?? '—' }}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
@@ -121,6 +227,8 @@ function submitMatch() {
 
         <CreateMatchDrawer
             v-model:open="drawerOpen"
+            v-model:league-id="selectedLeagueId"
+            :leagues="leagues"
             :teams="selectedLeague?.teams ?? []"
             :journees="selectedLeague?.journees ?? []"
             :form="form"

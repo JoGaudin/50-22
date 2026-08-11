@@ -111,7 +111,7 @@ function submitEditMatch() {
                 <span class="text-sm text-muted-foreground">
                     Arbitre : {{ match.referee?.name ?? match.referee_name ?? '—' }}
                 </span>
-                <Button v-if="!match.referee" size="sm" variant="outline" @click="claimMatch">Je suis l'arbitre</Button>
+                <Button v-if="!match.referee && !match.referee_name" size="sm" variant="outline" @click="claimMatch">Je suis l'arbitre</Button>
             </div>
 
             <div class="flex justify-end gap-2">

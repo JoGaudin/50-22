@@ -44,6 +44,12 @@ interface FicheVersion {
     name: string;
     creator: { id: string; name: string };
     param_descriptions: ParamValue[];
+    match: {
+        id: string;
+        home_team?: { name: string } | null;
+        outside_team?: { name: string } | null;
+        date?: string;
+    } | null;
 }
 
 interface TeamSummary {
@@ -68,24 +74,38 @@ const page = usePage();
 const currentUserId = () => (page.props.auth as { user: { id: string } }).user.id;
 
 const resultLabels: Record<string, string> = { win: 'Victoire', loss: 'Défaite', draw: 'Nul' };
+const matchStatusLabels: Record<string, string> = { scheduled: 'À venir', played: 'Joué', cancelled: 'Annulé' };
 
 const recentResults = computed(() =>
     props.matches
-        .filter((m) => m.status === 'played' && (m.home_team.id === props.team.id || m.outside_team.id === props.team.id))
+        .filter((m) => m.home_team.id === props.team.id || m.outside_team.id === props.team.id)
         .slice(0, 5)
         .map((m) => {
             const isHome = m.home_team.id === props.team.id;
+            const opponent = isHome ? m.outside_team.name : m.home_team.name;
+
+            if (m.status !== 'played' || m.home_team_score === null || m.outside_team_score === null) {
+                return {
+                    id: m.id,
+                    date: m.date,
+                    opponent,
+                    ownScore: null as number | null,
+                    opponentScore: null as number | null,
+                    resultLabel: matchStatusLabels[m.status] ?? m.status,
+                    color: 'bg-muted-foreground/40',
+                    title: `${opponent} — ${matchStatusLabels[m.status] ?? m.status}`,
+                };
+            }
+
             const own = isHome ? m.home_team_score : m.outside_team_score;
             const opponentScore = isHome ? m.outside_team_score : m.home_team_score;
-            const opponent = isHome ? m.outside_team.name : m.home_team.name;
-            const result = own === opponentScore ? 'draw' : (own ?? 0) > (opponentScore ?? 0) ? 'win' : 'loss';
+            const result = own === opponentScore ? 'draw' : own > opponentScore ? 'win' : 'loss';
             return {
                 id: m.id,
                 date: m.date,
                 opponent,
                 ownScore: own,
                 opponentScore,
-                result,
                 resultLabel: resultLabels[result],
                 color: result === 'win' ? 'bg-emerald-500' : result === 'loss' ? 'bg-red-500' : 'bg-amber-500',
                 title: `${opponent} — ${own} - ${opponentScore}`,
@@ -187,9 +207,6 @@ function submitSummary() {
                         <AvatarFallback>{{ team.name[0] }}</AvatarFallback>
                     </Avatar>
                     <h2 class="text-lg font-semibold">{{ team.name }}</h2>
-                </div>
-
-                <div v-if="recentResults.length" class="space-y-2 border-b pb-4">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-medium">Derniers résultats</span>
                         <span
@@ -200,24 +217,6 @@ function submitSummary() {
                             :title="r.title"
                         />
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Adversaire</TableHead>
-                                <TableHead>Score</TableHead>
-                                <TableHead>Résultat</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-for="r in recentResults" :key="r.id">
-                                <TableCell>{{ r.date }}</TableCell>
-                                <TableCell>{{ r.opponent }}</TableCell>
-                                <TableCell>{{ r.ownScore }} - {{ r.opponentScore }}</TableCell>
-                                <TableCell>{{ r.resultLabel }}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
                 </div>
 
                 <div class="space-y-2 border-b pb-4">
@@ -231,6 +230,35 @@ function submitSummary() {
                             <span class="font-medium">{{ summary.name }}</span> — {{ summary.pivot.description }}
                         </li>
                     </ul>
+                </div>
+
+                <div v-if="recentResults.length" class="space-y-2 border-b pb-4">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Adversaire</TableHead>
+                                <TableHead>Score</TableHead>
+                                <TableHead>Résultat</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow
+                                v-for="r in recentResults"
+                                :key="r.id"
+                                class="cursor-pointer"
+                                @click="$inertia.visit(route('referee.matches.show', r.id))"
+                            >
+                                <TableCell>{{ r.date }}</TableCell>
+                                <TableCell>{{ r.opponent }}</TableCell>
+                                <TableCell>
+                                    <span v-if="r.ownScore !== null">{{ r.ownScore }} - {{ r.opponentScore }}</span>
+                                    <span v-else class="text-muted-foreground">—</span>
+                                </TableCell>
+                                <TableCell>{{ r.resultLabel }}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
 
                 <div class="flex items-center justify-between gap-2">
@@ -250,6 +278,7 @@ function submitSummary() {
                             <TableRow>
                                 <TableHead>Nom</TableHead>
                                 <TableHead>Créée par</TableHead>
+                                <TableHead>Match</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -266,6 +295,17 @@ function submitSummary() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{{ version.creator?.name ?? '—' }}</TableCell>
+                                <TableCell>
+                                    <Link
+                                        v-if="version.match"
+                                        :href="route('referee.matches.show', version.match.id)"
+                                        class="text-primary underline-offset-2 hover:underline"
+                                        @click.stop
+                                    >
+                                        {{ version.match.home_team?.name ?? '—' }} - {{ version.match.outside_team?.name ?? '—' }}
+                                    </Link>
+                                    <span v-else>—</span>
+                                </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

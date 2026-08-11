@@ -12,8 +12,6 @@ class GameMatch extends Model
 
     protected $table = 'matches';
 
-    public $timestamps = false;
-
     protected $fillable = [
         'date',
         'journee_id',
@@ -26,6 +24,7 @@ class GameMatch extends Model
         'home_fiche_id',
         'outside_fiche_id',
         'status',
+        'created_by',
     ];
 
     protected function casts(): array
@@ -82,5 +81,13 @@ class GameMatch extends Model
     public function outsideFiche(): BelongsTo
     {
         return $this->belongsTo(Fiche::class, 'outside_fiche_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

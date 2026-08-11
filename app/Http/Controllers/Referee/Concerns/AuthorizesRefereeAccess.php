@@ -29,6 +29,8 @@ trait AuthorizesRefereeAccess
     protected function authorizeFiche(Fiche $fiche): void
     {
         $this->authorizeTeam($fiche->team);
+
+        abort_unless($fiche->created_by === Auth::id(), 403);
     }
 
     protected function authorizeMatch(GameMatch $match): void

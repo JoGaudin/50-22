@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Referee\Concerns\AuthorizesRefereeAccess;
 use App\Models\Fiche;
 use App\Models\Team;
+use App\Models\User;
 use App\UseCases\Fiche\CreateFicheVersionUseCase;
 use App\UseCases\Fiche\UpdateFicheUseCase;
 use Illuminate\Http\RedirectResponse;
@@ -54,7 +55,7 @@ class FicheController extends Controller
     public function update(Request $request, Fiche $fiche): RedirectResponse
     {
         $this->authorizeFiche($fiche);
-        $this->abortUnlessLatest($fiche);
+        $this->abortUnlessLatest($fiche, $request->user());
 
         $validated = $this->validateFiche($request);
 
@@ -91,9 +92,9 @@ class FicheController extends Controller
             ->all();
     }
 
-    private function abortUnlessLatest(Fiche $fiche): void
+    private function abortUnlessLatest(Fiche $fiche, User $user): void
     {
-        $latest = $this->fiches->latestForTeam($fiche->team);
+        $latest = $this->fiches->latestForTeam($fiche->team, $user);
 
         abort_unless($latest && $fiche->is($latest), 404);
     }

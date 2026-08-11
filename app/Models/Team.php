@@ -29,7 +29,7 @@ class Team extends Model
     protected function logoUrl(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?string => $this->logo ? Storage::disk('public')->url($this->logo) : null,
+            get: fn (): ?string => $this->logo ? Storage::disk(config()->string('filesystems.default'))->url($this->logo) : null,
         );
     }
 

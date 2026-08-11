@@ -5,7 +5,7 @@ import { Input } from '@/Components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/Components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 interface ParamValue {
@@ -19,6 +19,8 @@ interface FicheRow {
     name: string;
     creator: { id: string; name: string } | null;
     param_descriptions: ParamValue[];
+    created_at: string;
+    match: { id: string; journee?: { number: number } | null; date?: string } | null;
 }
 
 const props = defineProps<{
@@ -44,16 +46,25 @@ function answerFor(fiche: FicheRow, paramId: string): string {
 }
 
 const search = ref('');
+const sortDir = ref<'asc' | 'desc'>('desc');
+
+function toggleSort() {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+}
 
 const filteredFiches = computed(() => {
     const term = search.value.trim().toLowerCase();
-    if (!term) return props.fiches;
+    const dir = sortDir.value === 'asc' ? 1 : -1;
 
-    return props.fiches.filter(
-        (fiche) =>
-            fiche.name.toLowerCase().includes(term) ||
-            fiche.param_descriptions.some((p) => p.pivot.description?.toLowerCase().includes(term)),
-    );
+    return props.fiches
+        .filter(
+            (fiche) =>
+                !term ||
+                fiche.name.toLowerCase().includes(term) ||
+                fiche.param_descriptions.some((p) => p.pivot.description?.toLowerCase().includes(term)),
+        )
+        .slice()
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) * dir);
 });
 </script>
 
@@ -79,7 +90,10 @@ const filteredFiches = computed(() => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Fiche</TableHead>
+                            <TableHead class="cursor-pointer select-none" @click="toggleSort">
+                                Fiche {{ sortDir === 'asc' ? '▲' : '▼' }}
+                            </TableHead>
+                            <TableHead>Match</TableHead>
                             <TableHead v-for="param in paramDescriptions" :key="param.id">{{ param.name }}</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -88,6 +102,16 @@ const filteredFiches = computed(() => {
                             <TableCell>
                                 <p class="font-medium">{{ fiche.name }}</p>
                                 <p class="text-xs text-muted-foreground">{{ fiche.creator?.name ?? '—' }}</p>
+                            </TableCell>
+                            <TableCell>
+                                <Link
+                                    v-if="fiche.match"
+                                    :href="route('referee.matches.show', fiche.match.id)"
+                                    class="text-primary underline-offset-2 hover:underline"
+                                >
+                                    J{{ fiche.match.journee?.number ?? '—' }}
+                                </Link>
+                                <span v-else>—</span>
                             </TableCell>
                             <TableCell v-for="param in paramDescriptions" :key="param.id" class="whitespace-pre-wrap">
                                 {{ answerFor(fiche, param.id) }}

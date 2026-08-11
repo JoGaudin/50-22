@@ -34,6 +34,7 @@ interface MatchRow {
     outside_team: Team;
     journee: { id: string; number: number };
     referee: { id: string; name: string } | null;
+    referee_name: string | null;
 }
 
 const props = defineProps<{
@@ -211,7 +212,7 @@ const filteredSortedMatches = computed(() => {
                                     <span v-else class="text-muted-foreground">—</span>
                                 </TableCell>
                                 <TableCell><Badge :variant="statusVariants[match.status] ?? 'outline'">{{ statusLabels[match.status] ?? match.status }}</Badge></TableCell>
-                                <TableCell>{{ match.referee?.name ?? '—' }}</TableCell>
+                                <TableCell>{{ match.referee?.name ?? match.referee_name ?? '—' }}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

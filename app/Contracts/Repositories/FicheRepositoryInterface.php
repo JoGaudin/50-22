@@ -22,17 +22,17 @@ interface FicheRepositoryInterface
      */
     public function createdBy(User $user): Collection;
 
-    public function latestForTeam(Team $team): ?Fiche;
+    public function latestForTeam(Team $team, User $user): ?Fiche;
 
     /**
      * @return Collection<int, Fiche>
      */
-    public function versionsForTeam(Team $team): Collection;
+    public function versionsForTeam(Team $team, User $user): Collection;
 
     /**
      * @return Collection<int, Fiche>
      */
-    public function recentAnswers(Team $team, ParamDescription $param, int $limit = 10): Collection;
+    public function recentAnswers(Team $team, ParamDescription $param, User $user, int $limit = 10): Collection;
 
     /**
      * @param array<string, mixed> $data
