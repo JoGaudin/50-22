@@ -120,6 +120,37 @@ L'application est ensuite accessible sur `http://{APP_SLUG}.localhost`.
 
 Consultez `.env.example` pour la liste complète et les commentaires.
 
+## Déploiement production (Railway + Neon + R2)
+
+Build via `docker/prod/Dockerfile` (multi-stage : build assets Vite + PHP-FPM/Nginx/Supervisor dans un seul conteneur). `railway.json` à la racine indique à Railway d'utiliser ce Dockerfile plutôt que l'auto-détection.
+
+### Variables d'environnement à définir dans Railway
+
+| Variable | Valeur |
+|---|---|
+| `APP_KEY` | Générer une fois (`php artisan key:generate --show`) et fixer en var — ne pas régénérer à chaque déploiement (filesystem éphémère) |
+| `APP_ENV` | `production` |
+| `APP_DEBUG` | `false` |
+| `DB_URL` | Connection string Neon (attention : Neon expose `DATABASE_URL`, à recopier ici sous le nom `DB_URL` — Laravel lit ce nom précis) |
+| `DB_SSLMODE` | `require` |
+| `FILESYSTEM_DISK` | `s3` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Token API R2 |
+| `AWS_DEFAULT_REGION` | `auto` |
+| `AWS_BUCKET` | Nom du bucket R2 |
+| `AWS_ENDPOINT` | `https://<account_id>.r2.cloudflarestorage.com` |
+| `AWS_URL` | URL publique du bucket (domaine `r2.dev` ou custom) |
+| `AWS_USE_PATH_STYLE_ENDPOINT` | `true` |
+| `QUEUE_CONNECTION` | `sync` tant que le trafic reste faible ; sinon `database`/`redis` + un 2e service Railway `php artisan queue:work` |
+| `ADMIN_EMAIL` / `ADMIN_NAME` / `ADMIN_PASSWORD` | Requis avant le premier `db:seed` (voir ci-dessous) |
+
+### Premier déploiement
+
+```bash
+railway run php artisan migrate --seed --force
+```
+
+`DatabaseSeeder` est idempotent (`updateOrCreate` sur l'admin) — safe à relancer. **Important** : `ADMIN_PASSWORD` doit être défini en var Railway avant ce seed — en environnement non-`local`, le mot de passe généré automatiquement n'est jamais loggé.
+
 ## Tests
 
 ```bash
