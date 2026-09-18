@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import AddLeagueDropdown from '@/Components/AddLeagueDropdown.vue';
 import Badge from '@/Components/Badge.vue';
 import CreateMatchDrawer from '@/Components/CreateMatchDrawer.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
+import LeaveLeagueButton from '@/Components/LeaveLeagueButton.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import TeamInfoDialog from '@/Components/TeamInfoDialog.vue';
 import { Button } from '@/Components/ui/button';
@@ -43,6 +45,7 @@ const props = defineProps<{
     teams: Team[];
     matches: MatchRow[];
     journees: Array<{ id: string; number: number; start_date: string; end_date: string }>;
+    availableLeagues: Array<{ id: string; name: string }>;
 }>();
 
 const page = usePage();
@@ -123,7 +126,12 @@ const filteredSortedMatches = computed(() => {
                 eyebrow="Championnat"
                 :title="league.name"
                 :description="season ? `Saison ${season.name}` : 'Aucune saison en cours'"
-            />
+            >
+                <template #actions>
+                    <LeaveLeagueButton :league="league" />
+                    <AddLeagueDropdown :leagues="availableLeagues" />
+                </template>
+            </PageHeader>
         </template>
 
         <div class="space-y-6 p-6">

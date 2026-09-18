@@ -107,6 +107,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 Route::middleware(['auth', 'verified'])->prefix('referee')->name('referee.')->group(function () {
     Route::get('/', [RefereeLeagueController::class, 'index'])->name('leagues.index');
     Route::get('/leagues/{league}', [RefereeLeagueController::class, 'show'])->name('leagues.show');
+    Route::post('/leagues/{league}/join', [RefereeLeagueController::class, 'join'])->name('leagues.join');
+    Route::delete('/leagues/{league}/leave', [RefereeLeagueController::class, 'leave'])->name('leagues.leave');
     Route::post('/leagues/{league}/matches', [RefereeMatchController::class, 'store'])->name('leagues.matches.store');
     Route::get('/matches', [RefereeMatchController::class, 'index'])->name('matches.index');
     Route::get('/matches/{match}', [RefereeMatchController::class, 'show'])->name('matches.show');

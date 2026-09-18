@@ -21,6 +21,11 @@ interface LeagueRepositoryInterface
     public function forUser(User $user): Collection;
 
     /**
+     * @return Collection<int, League>
+     */
+    public function availableForUser(User $user): Collection;
+
+    /**
      * @param array<string, mixed> $data
      */
     public function create(array $data): League;

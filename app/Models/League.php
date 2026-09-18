@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class League extends Model
 {
@@ -17,6 +19,17 @@ class League extends Model
         'name',
         'logo',
     ];
+
+    protected $appends = [
+        'logo_url',
+    ];
+
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->logo ? Storage::disk(config()->string('filesystems.default'))->url($this->logo) : null,
+        );
+    }
 
     /**
      * @return HasMany<Season, $this>

@@ -45,5 +45,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call(ParamDescriptionSeeder::class);
         $this->call(RugbyNationaleSeeder::class);
+        $this->call(ProD2Seeder::class);
+        $this->call(Nationale2Seeder::class);
     }
 }

@@ -38,13 +38,19 @@ class LeagueManagementController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'logo' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
             'referee_user_ids' => ['nullable', 'array'],
             'referee_user_ids.*' => ['uuid', 'exists:users,id'],
         ]);
 
         $refereeUserIds = $validated['referee_user_ids'] ?? [];
         unset($validated['referee_user_ids']);
+
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo')->store('league-logos', config()->string('filesystems.default'));
+        } else {
+            unset($validated['logo']);
+        }
 
         $league = $this->create->execute($validated);
         $this->syncReferees->execute($league, $refereeUserIds);
@@ -56,13 +62,19 @@ class LeagueManagementController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'logo' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['nullable', 'image', 'max:4096'],
             'referee_user_ids' => ['nullable', 'array'],
             'referee_user_ids.*' => ['uuid', 'exists:users,id'],
         ]);
 
         $refereeUserIds = $validated['referee_user_ids'] ?? [];
         unset($validated['referee_user_ids']);
+
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo')->store('league-logos', config()->string('filesystems.default'));
+        } else {
+            unset($validated['logo']);
+        }
 
         $this->update->execute($league, $validated);
         $this->syncReferees->execute($league, $refereeUserIds);
