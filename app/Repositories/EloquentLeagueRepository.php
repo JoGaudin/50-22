@@ -27,6 +27,14 @@ class EloquentLeagueRepository implements LeagueRepositoryInterface
             ->get();
     }
 
+    public function availableForUser(User $user): Collection
+    {
+        return League::query()
+            ->whereDoesntHave('referees', fn ($q) => $q->where('users.id', $user->id))
+            ->orderBy('name')
+            ->get();
+    }
+
     public function create(array $data): League
     {
         return League::create($data);
