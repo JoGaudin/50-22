@@ -45,6 +45,7 @@ const props = defineProps<{
     homeFiche: FicheFull | null;
     outsideFiche: FicheFull | null;
     paramDescriptions: Array<{ id: string; name: string }>;
+    journees: Array<{ id: string; number: number }>;
 }>();
 
 const statusLabels: Record<string, string> = {
@@ -67,6 +68,8 @@ const createFicheOpen = ref(false);
 
 const editMatchOpen = ref(false);
 const editForm = useForm({
+    date: props.match.date.slice(0, 10),
+    journee_id: props.match.journee.id,
     home_team_score: props.match.home_team_score,
     outside_team_score: props.match.outside_team_score,
     status: props.match.status,
@@ -158,6 +161,18 @@ function submitEditMatch() {
                     <DialogTitle>Modifier le match</DialogTitle>
                 </DialogHeader>
                 <form class="space-y-4" @submit.prevent="submitEditMatch">
+                    <div class="grid grid-cols-2 gap-4">
+                        <FormField label="Date" :error="editForm.errors.date" required>
+                            <Input v-model="editForm.date" type="date" />
+                        </FormField>
+                        <FormField label="Journée" :error="editForm.errors.journee_id" required>
+                            <NativeSelect v-model="editForm.journee_id" class="w-full">
+                                <NativeSelectOption v-for="journee in journees" :key="journee.id" :value="journee.id">
+                                    J{{ journee.number }}
+                                </NativeSelectOption>
+                            </NativeSelect>
+                        </FormField>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <FormField label="Score domicile" :error="editForm.errors.home_team_score">
                             <Input v-model.number="editForm.home_team_score" type="number" min="0" />

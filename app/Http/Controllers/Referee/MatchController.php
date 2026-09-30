@@ -98,6 +98,7 @@ class MatchController extends Controller
             'homeFiche' => $match->homeFiche,
             'outsideFiche' => $match->outsideFiche,
             'paramDescriptions' => ParamDescription::query()->orderBy('order')->orderBy('name')->get(['id', 'name']),
+            'journees' => $match->journee->season->journees()->orderBy('number')->get(['id', 'number']),
         ]);
     }
 
@@ -106,6 +107,8 @@ class MatchController extends Controller
         $this->authorizeMatch($match);
 
         $validated = $request->validate([
+            'date' => ['required', 'date'],
+            'journee_id' => ['required', 'uuid', Rule::exists('journees', 'id')->where('season_id', $match->journee->season_id)],
             'home_team_score' => ['nullable', 'integer', 'min:0'],
             'outside_team_score' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['scheduled', 'played', 'cancelled'])],
